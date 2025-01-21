@@ -8,13 +8,13 @@
 #define FROM_KEY 32
 #define TILL_KEY_EXCL 128
 
-// TODO
-//#define LED_RED PB4
-//#define LED_GREEN PB5
-//#define BUTTON1 PF7
-//#define BUTTON2 PF6
-//#define BUTTON3 PF5
-//#define BUTTON4 PF4
+// TODO LED's and buttons on interface circuit board
+#define LED_RED 8 // atmel PB4
+#define LED_GREEN 9 // atmel PB5
+#define BUTTON1 14 // atmel PF7
+#define BUTTON2 15 // atmel PF6
+#define BUTTON3 16 // atmel PF5
+#define BUTTON4 17 // atmel PF4
 
 // Includes
 #include <Arduino.h>
@@ -229,15 +229,16 @@ void ProcessChar(char c)
 
 void setup()
 {
-  //pinMode(LED_RED, OUTPUT);
-  //pinMode(LED_GREEN, OUTPUT);
-  //pinMode(BUTTON1, INPUT);
-  //pinMode(BUTTON2, INPUT);
-  //pinMode(BUTTON3, INPUT);
-  //pinMode(BUTTON4, INPUT);
+    pinMode(LED_RED, OUTPUT);
+    pinMode(LED_GREEN, OUTPUT);
+    pinMode(BUTTON1, INPUT_PULLUP);
+    pinMode(BUTTON2, INPUT_PULLUP);
+    pinMode(BUTTON3, INPUT_PULLUP);
+    pinMode(BUTTON4, INPUT_PULLUP);
 
-  //digitalWrite(LED_RED, 0);
-  //digitalWrite(LED_GREEN, 0);
+    // todo, when board is ready
+    //digitalWrite(LED_RED, 0);
+    //digitalWrite(LED_GREEN, 0);
 
     ClearTimers();
 
@@ -257,7 +258,16 @@ void setup()
 
     Keyboard.begin(KB_LAYOUT);
 }
-    
+
+void ProcessButtons()
+{
+    // TODO
+    bool button1Pressed = digitalRead(BUTTON1) == LOW;
+    bool button2Pressed = digitalRead(BUTTON2) == LOW;
+    bool button3Pressed = digitalRead(BUTTON3) == LOW;
+    bool button4Pressed = digitalRead(BUTTON4) == LOW;
+}
+
 void loop()
 {
     if (First)
@@ -327,4 +337,5 @@ void loop()
     }
 
     ReleaseKeys(); //check all keys and release if necessary
+    ProcessButtons();
 }
