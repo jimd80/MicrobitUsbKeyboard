@@ -1,0 +1,330 @@
+// Settings
+#define DEBUG 0                // 1 = less logging to not affect performance, 2 = extra logging, less performance
+#define PLAYER_DELAY_MS 50     // when the same key is received within this delay, don't send repeated key as long as subsequent keys are below this delay (prevent spamming, cheating and backlog floods)
+#define KEYPRESS_TIME_MS 20    // time between the keydown-keyup event. Must be smaller than PLAYER_DELAY_MS to allow time between keyup and the next keydown.
+#define MAX_KEYS_SAME_TIME 6   // maximum keys pressed at the same time (USB Limit). Max rate = 1000 * MAX_KEYS_SAME_TIME / KEYPRESS_TIME_MS keys/sec
+#define KB_LAYOUT KeyboardLayout_fr_FR
+
+#define FROM_KEY 32
+#define TILL_KEY_EXCL 128
+
+// TODO
+//#define LED_RED PB4
+//#define LED_GREEN PB5
+//#define BUTTON1 PF7
+//#define BUTTON2 PF6
+//#define BUTTON3 PF5
+//#define BUTTON4 PF4
+
+// Includes
+#include <Arduino.h>
+#include <Keyboard.h>
+
+// Global Variables
+bool First = true;
+unsigned long LastKbCharSendTimeMs = 0; // last millis() a char was sent to the keyboard, to wait for the next millisecond (send max 1000 events / sec)
+unsigned long LastSendTimePerKey[TILL_KEY_EXCL - FROM_KEY]; // last time when this key was sent to the computer
+unsigned long LastReceiveTimePerKey[TILL_KEY_EXCL - FROM_KEY]; // last time when this key was received from serial
+bool IsKeyPressed[TILL_KEY_EXCL - FROM_KEY]; // flags indicating for which keys a keydown event was sentare times a character was supressed
+unsigned char NrKeysDown = 0;
+
+#if DEBUG > 0
+    // only 2kb ram, save space for non debug to have more stack space
+    unsigned long NrSendPerKey[TILL_KEY_EXCL - FROM_KEY]; // times a character was sent to the kb
+    unsigned long NrSupressedPerKey[TILL_KEY_EXCL - FROM_KEY]; // times a character was supressed
+#endif
+
+#if KEYPRESS_TIME_MS >= PLAYER_DELAY_MS
+    #error Illegal values
+#endif
+
+template <class T> void WriteDec(T value, unsigned char digits = 0, char multiplier = 0)
+{
+    unsigned char revbuf[10];
+    unsigned char ctr = 0;
+
+    // avoid printing 0000
+    if (multiplier > 0 && value == 0)
+        multiplier = 0;
+
+    // make sure digits at at least 1 larger as #decimals (example 0.000)
+    if (digits <= -multiplier)
+        digits = 1 - multiplier;
+
+    // store number with minimum nr of digits and at least 1 digit
+    while (value || !ctr)
+    {
+        revbuf[ctr++] = (value % 10) + '0';
+        value /= 10;
+        if (digits > 0)
+          digits--;
+    }
+
+    // at this point: digits = remaining leading zeros, ctr = actual digits in buffer
+    char decimalPos = ctr + digits + multiplier; // position to write the decimal point (# digits before)
+
+    while (digits--)
+    {
+        if (decimalPos-- == 0)
+            Serial.write('.');
+
+        Serial.write('0');
+    }
+
+    while (ctr)
+    {
+        if (decimalPos-- == 0)
+            Serial.write('.');
+
+        Serial.write(revbuf[--ctr]);
+    }
+
+    while (decimalPos-- > 0)
+        Serial.write('0');
+}
+
+void WriteDec(long value, unsigned char digits = 0, char multiplier = 0)
+{
+    if (value < 0)
+    {
+        Serial.write('-');
+        value = -value;
+    }
+
+    WriteDec<unsigned long>(value, digits, multiplier);
+}
+
+void WriteDec(unsigned long value, unsigned char digits = 0, char multiplier = 0)
+{
+    WriteDec<unsigned long>(value, digits, multiplier);
+}
+
+// test: 500 characters/s
+void speedtest()
+{
+    for (int i = 0; i < 2000; i++)
+    {
+        Keyboard.write('G');
+        if (i % 200 == 199)
+            Keyboard.write('\n');
+    }
+
+    for (int i = 0; i < 2000; i++)
+    {
+        Keyboard.write('a');
+        if (i % 200 == 199)
+            Keyboard.write('\n');
+    }
+
+    Keyboard.write('\n');
+}
+
+void ClearTimers()
+{
+    LastKbCharSendTimeMs = 0;
+    for (unsigned char i = 0; i < (TILL_KEY_EXCL - FROM_KEY); i++)
+    {
+        LastReceiveTimePerKey[i] = 0;
+        LastSendTimePerKey[i] = 0;
+
+        #if DEBUG > 0
+            NrSendPerKey[i] = 0;
+            NrSupressedPerKey[i] = 0;
+        #endif
+    }
+}
+
+//check all keys and release if necessary
+void ReleaseKeys()
+{  
+    unsigned long currentTime = millis();
+    for (unsigned char i = 0; i < (TILL_KEY_EXCL - FROM_KEY); i++)
+    {
+        if (IsKeyPressed[i] && (LastSendTimePerKey[i] + KEYPRESS_TIME_MS) < currentTime) 
+        {
+            // Release key
+            Keyboard.release(i + FROM_KEY);
+            IsKeyPressed[i] = false;
+            NrKeysDown--;
+            return; // continue on the next main loop iteration to increase respond time
+        }
+    }
+}
+
+void ProcessChar(char c)
+{
+    // Check valid char
+    if (c < FROM_KEY || c >= TILL_KEY_EXCL)
+    {
+        #if DEBUG >= 1
+            Serial.write("Unsupported char received\r\n");
+        #endif
+
+        return;
+    }
+
+    unsigned char charIndex = c - FROM_KEY;
+
+    // Check time between keys > 1ms
+    unsigned long currentTime = millis();
+
+    while (true)
+    {
+        if (currentTime <= LastKbCharSendTimeMs)
+        {
+            if (currentTime < LastKbCharSendTimeMs)
+            {
+                #if DEBUG >= 1
+                    Serial.write("millis{} overflow, reset timers\r\n");
+                #endif
+                ClearTimers();
+            }
+            currentTime = millis();
+            continue; // delay at least 1ms to not send more than 1000 keys/sec to computer
+        }
+        break;
+    }
+
+    LastKbCharSendTimeMs = currentTime;
+
+    // Check time between same key. As an anti-cheat meausure, extend the wait time if the same key is received below a reasonable "minimum human" time.
+    unsigned long prevKeyTime = LastReceiveTimePerKey[charIndex];
+    LastReceiveTimePerKey[charIndex] = currentTime;
+
+    if ((prevKeyTime + PLAYER_DELAY_MS) > currentTime)
+    {
+        #if DEBUG > 0
+            NrSupressedPerKey[charIndex]++;
+        #endif
+
+        #if DEBUG >= 2
+            Serial.write("Supressed repeated key\r\n");
+            Keyboard.write('!');
+        #endif
+        return;
+    }
+
+    if (IsKeyPressed[charIndex])
+    {
+        #if DEBUG >= 1
+            Serial.write("Error Key is already pressed, should not happen!\r\n");
+        #endif
+        return;
+    }
+
+    // wait if maximum number of keys is already being pressed
+    while (NrKeysDown >= MAX_KEYS_SAME_TIME)
+        ReleaseKeys();
+
+    // Send keydown event
+    Keyboard.press(c);
+    LastSendTimePerKey[charIndex] = currentTime; // ReleaseKeys() needs this to release key after KEYPRESS_TIME_MS
+    IsKeyPressed[charIndex] = true;
+    NrKeysDown++;
+
+    #if DEBUG > 0
+        NrSendPerKey[charIndex]++;
+    #endif
+}
+
+void setup()
+{
+  //pinMode(LED_RED, OUTPUT);
+  //pinMode(LED_GREEN, OUTPUT);
+  //pinMode(BUTTON1, INPUT);
+  //pinMode(BUTTON2, INPUT);
+  //pinMode(BUTTON3, INPUT);
+  //pinMode(BUTTON4, INPUT);
+
+  //digitalWrite(LED_RED, 0);
+  //digitalWrite(LED_GREEN, 0);
+
+    ClearTimers();
+
+    NrKeysDown = 0;
+    for (unsigned char i = 0; i < (TILL_KEY_EXCL - FROM_KEY); i++)
+        IsKeyPressed[i] = false;
+
+    #if DEBUG >= 1
+        Serial.begin(115200);
+        while (!Serial)
+        ;
+    #endif
+
+    Serial1.begin(115200);
+    while (!Serial1)
+        ;
+
+    Keyboard.begin(KB_LAYOUT);
+}
+    
+void loop()
+{
+    if (First)
+    {
+        First = false;
+        delay(1000);
+
+        #if DEBUG >= 1
+            Serial.write("Serial to HID Ready!\r\n");
+            Serial.write("In DEBUG Mode ");
+            Serial.write('0' + DEBUG);
+            Serial.write(" Using anti-spam delay of ");
+            WriteDec(PLAYER_DELAY_MS);
+            Serial.write("ms and a keypress time of ");
+            WriteDec(KEYPRESS_TIME_MS);
+            Serial.write("ms\r\n");
+            // delay(5000);
+            // speedtest();
+        #endif
+    }
+
+    #if DEBUG >= 1
+        // Debug
+        if (Serial.available())
+        {
+        char cmd = Serial.read();
+        if (cmd == '?')
+        {
+            Serial.write("\r\nStats (c=clear):\r\n");
+            for (unsigned char i = 0; i < (TILL_KEY_EXCL - FROM_KEY); i++)
+            {
+                if (LastReceiveTimePerKey[i] == 0)
+                    continue;
+
+                Serial.write("Key '");
+                Serial.write(i + FROM_KEY);
+                Serial.write(": Send: ");
+                WriteDec(NrSendPerKey[i]);
+                Serial.write(": Supr: ");
+                WriteDec(NrSupressedPerKey[i]);
+                Serial.write("\r\n");
+            }
+            Serial.write("------\r\n");
+        }
+        else if (cmd == 'c')
+        {
+            ClearTimers();
+            Serial.write("Stats cleared.\r\n");
+        }
+        else
+        {
+            //delay(100);
+            //Keyboard.write(cmd);
+        }
+        }
+    #endif
+
+    if (Serial1.available())
+    {
+        #if DEBUG >= 2
+            Serial.write("Received char at ");
+            WriteDec(millis());
+            Serial.write(" ms.\r\n");
+        #endif
+
+        ProcessChar(Serial1.read());
+    }
+
+    ReleaseKeys(); //check all keys and release if necessary
+}
