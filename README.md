@@ -1,10 +1,11 @@
 # Micro:bit to USB Keyboard interface
-This project will allow you to connect a Micro:bit to a computer and send keystrokes to it. It's intended use is to create local multiplayer games in [Scratch] up to 26 players. Each player has another Micro:bit as a wireless game controller (with only 1 active button). The receiver will simulate a USB keyboard that sends a keypress (from a to z) for each player that presses the button on their controller.
+This project will allow you to connect a Micro:bit to a computer and send keystrokes to it. It's intended use is to create local multiplayer games in [Scratch](https://scratch.mit.edu/) up to 26 players. Each player has another Micro:bit as a wireless game controller (with only 1 active button). The receiver will simulate a USB keyboard that sends a keypress (from a to z) for each player that presses the button on their controller.
 
 ## Hardware setup
-You'll need a board with an ATmega32U4 microcontroller, such as an Arduino Micro, Arduino Leonardo or a Pro Micro. Pin 1 of the Micro:bit should be connected to the serial port Rxd pin of the controller.
+You'll need an Arduino (compatible) board with an ATmega32U4 microcontroller, such as an Arduino Micro, Arduino Leonardo or a Pro Micro. Pin 1 of the Micro:bit should be connected to the serial port Rxd pin of the controller.
 
 Wiring for the Arduino Micro:
+
 ![Wiring diagram](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20to%20arduino%20micro%20connection.png?raw=true)
 
 ## Arduino build instructions
@@ -20,45 +21,66 @@ The keyboard layout is set to Belgium or France (azerty). If you use another key
 
 ## Micro:bit receiver build instructions
 If you have a specific project, you can use below code as a starting point. Setup a serial port with TX on P1, RX on P0 and a baud rate of 115200. Next, every character sent over the serial port will be converted to a simulated keypress on the computer.
+
 ![Micro:bit sample code](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20sample%20code.png?raw=true)
 
 Or, you can use the default software for a receiver that handles up to 26 senders.
+
 Microsoft MakeCode [DojoGameReceiver project](https://makecode.microbit.org/S01281-32840-25827-62408)
+
 Alternatively, download [microbit-DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex) and drag&drop it to the Micro:bit drive
 
 ### Usage of the DojoGameReceiver:
 Press A for a test of 50 keys/sec for 5 sec, each key 10 times
+
 Press B for a test of 250 keys/sec for 5 sec, each key 50 times
 
 ## Micro:bit game controller (sender) build instructions
 You can include this step in the learning process and game experience. You can educate the participants to build their game controller first before thay can play. Writing a program for the game controller Micro:bit is as simple as this:
+
 ![Micro:bit sample code](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20gamecontroller%20code.png?raw=true)
 
-Each player need a "secret code" that will identify them as player a...z (the keyboard button). Using this secret code will make sure thay will be assigned to their own letter and not to another one (due to a typo or intended trolling).
-Download the [list of "secret" game codes]here as a text/csv file(https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Gamecodes.csv?raw=true)
+Each player needs a "secret code" that will identify them as player a...z. They'll need to enter this, instead of 9999, in the "radio send number" block. Using this secret code will make sure they will be assigned to their own letter and not to another one (due to a typo or intended trolling).
+
+Download the [list of "secret" game codes]here as a text/csv file](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Gamecodes.csv?raw=true)
 
 Alternatively, is there is not enough time to include the Mocro:bit programming as a part of the game, there is also a ready to use program:
-Microsoft MakeCode [DojoGameControllerUniversal project](https://makecode.microbit.org/S17170-50597-42799-53089)
-Alternatively, download [DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex) and drag&drop it to the Micro:bit drive
 
-You can hand over the pre-programmed Micro:bits to the participants, but they still need to assign this "secret" game code to the Micro:bit. This allowes to use the same code for each controller. To set the game code, tell the participants to follow these steps:
+Microsoft MakeCode [DojoGameControllerUniversal project](https://makecode.microbit.org/S17170-50597-42799-53089)
+
+Or download [DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex?raw=true) and drag&drop it to the Micro:bit drive
+
+You can hand over the pre-programmed Micro:bits to the participants, but they'll still need to assign their personal "secret" game code to the Micro:bit. This allowes to use the exact same program for each controller. To set the game code, tell the participants to follow the steps below.
+### Usage of the DojoGameControllerUniversal:
 The Micro:bit will show a ? symbol. If your game code is 4567 for example:
-- Press 4 times A
-- Press 5 times B
-- Press 6 times A
-- Press 7 times B
-- Press A to conform.
-If succeeded, the Micro:bit will show the player assigned letter (a..z) whis can also be usefull to identify yout player character in the game, if no personelised names are used.
+* Press 4 times A
+* Press 5 times B
+* Press 6 times A
+* Press 7 times B
+* Press A to confirm.
+
+If succeeded, the Micro:bit will show the player assigned letter (a..z) which can also be usefull to identify yout player character in the game, if no personelised names are used.
+
 If not succeeded, press B and try again. Note that A and B can be swapped and the procedure will still work.
 
-## Example Scratch games
+## Scratch developer tips
+The difficult part is to build code that needs to be copy-pasted 26 times for each player. The most simple starting point makes use of cloning a sprite and can be like this:
+![DojoGameHelper](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Scratch%20DojoGameHelper.png?raw=true)
+Go to [DojoGameHelp1](https://scratch.mit.edu/projects/1082054988)
+
+To see a complete game using another technique, check out this (music is removed due to copyright reasons)
+
 [A horse racing game](https://scratch.mit.edu/projects/1110965589/)
+
+Note that you do not need any extra hardware to run or test the game, just press a..z (and spacebar to go to the next screen)
 
 ## Additional resources
 In classrooms, there is often not much time to waste. When playing with 26 players, it can be challenging to handle the storage, distribution and collection of the Micro:bits in a short time. Therefore, a 3D printable case is available to store 27 Micro:bits, the USB cable and the battery box in a compact way.
 
 The STL file is available [here](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20case.stl?raw=true)
+
 ![STL File for storing 27 Micro:bit](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20case%20stl%20file.png?raw=true)
+
 ![Picture of the box in use](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20case%20printed%202.jpg?raw=true)
 
 ## Future developments
