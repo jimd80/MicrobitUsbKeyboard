@@ -4,7 +4,7 @@ This project will allow you to connect a Micro:bit to a computer and send keystr
 ## Hardware setup
 You'll need an Arduino (compatible) board with an ATmega32U4 microcontroller, such as an Arduino Micro, Arduino Leonardo or a Pro Micro. Pin 1 of the Micro:bit should be connected to the serial port Rxd pin of the controller.
 
-Wiring for the Arduino Micro:
+Wiring diagram for the Arduino Micro:
 
 ![Wiring diagram](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20to%20arduino%20micro%20connection.png?raw=true)
 
@@ -13,7 +13,7 @@ The project can be build using VSCode with the PlatformIO addon. Alternatively, 
 
 You could tweak the constants PLAYER_DELAY_MS, KEYPRESS_TIME_MS and MAX_KEYS_SAME_TIME but it is strongly advised to leave then as-is. These values were carefully chosen to meet most types of games (either high volume clicker games, or time accurate "shooting" games).
 
-Keep in mind that 26 controllers will generate a lot of keystrokes! The software is designed to handle a troughput of 26 controllers, each clicking 10 times/second, which is about the human limit of pressing a Micro:bit pushbutton. The USB protocol also have a limit of 6 keyboard keys pressed at the same time. Therefore, the time between a KeyDown and KeyUp event is set to 20 ms. This allowes a total troughput of 300 keystrokes per second, which is about 11.5 clicks per second per controller.
+Keep in mind that 26 controllers will generate a lot of keystrokes! The software is designed to handle a throughput of 26 controllers, each clicking 10 times/second, which is about the human limit of pressing a Micro:bit pushbutton. The USB protocol also have a limit of 6 keyboard keys pressed at the same time. Therefore, the time between a KeyDown and KeyUp event is set to 20 ms. This allowes a total throughput of 300 keystrokes per second, which is about 11.5 clicks per second per controller.
 
 The time before the same key can be sent again is set to 50 ms. This prevents cheating and buffer backlog floods. To protect even more from cheating, when the same key is received within 50 ms, the wait time will restart. This prevents a cheater from sending on a 30 ms interval which would still result in a 60ms interval. That is still faster than the human limit.
 
@@ -24,31 +24,30 @@ If you have a specific project, you can use below code as a starting point. Setu
 
 ![Micro:bit sample code](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20sample%20code.png?raw=true)
 
-Or, you can use the default software for a receiver that handles up to 26 senders.
+Or, you can use the default software below for a receiver that handles up to 26 senders.
 
 Microsoft MakeCode [DojoGameReceiver project](https://makecode.microbit.org/S01281-32840-25827-62408)
 
-Alternatively, download [microbit-DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex) and drag&drop it to the Micro:bit drive
+Alternatively, download [microbit-DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex?raw=true) and drag&drop it to the Micro:bit drive letter.
 
 ### Usage of the DojoGameReceiver:
-Press A for a test of 50 keys/sec for 5 sec, each key 10 times
-
-Press B for a test of 250 keys/sec for 5 sec, each key 50 times
+* Press A for a test of 50 keys/sec for 5 sec, each key 10 times
+* Press B for a test of 250 keys/sec for 5 sec, each key 50 times
 
 ## Micro:bit game controller (sender) build instructions
-You can include this step in the learning process and game experience. You can educate the participants to build their game controller first before thay can play. Writing a program for the game controller Micro:bit is as simple as this:
+You can include this step in the learning process and game experience. You can educate the participants to build their game controller first before they can play. Writing a program for the game controller Micro:bit is as simple as this:
 
 ![Micro:bit sample code](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20gamecontroller%20code.png?raw=true)
 
 Each player needs a "secret code" that will identify them as player a...z. They'll need to enter this, instead of 9999, in the "radio send number" block. Using this secret code will make sure they will be assigned to their own letter and not to another one (due to a typo or intended trolling).
 
-Download the [list of "secret" game codes]here as a text/csv file](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Gamecodes.csv?raw=true)
+Download the [list of "secret" game codes](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Gamecodes.csv?raw=true) here as a text/csv file.
 
-Alternatively, is there is not enough time to include the Mocro:bit programming as a part of the game, there is also a ready to use program:
+Alternatively, if there is not enough time to include the Micro:bit programming as a part of the game, there is also a ready to use program:
 
 Microsoft MakeCode [DojoGameControllerUniversal project](https://makecode.microbit.org/S17170-50597-42799-53089)
 
-Or download [DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex?raw=true) and drag&drop it to the Micro:bit drive
+Or download [DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex?raw=true) and drag&drop it to the Micro:bit drive letter.
 
 You can hand over the pre-programmed Micro:bits to the participants, but they'll still need to assign their personal "secret" game code to the Micro:bit. This allowes to use the exact same program for each controller. To set the game code, tell the participants to follow the steps below.
 ### Usage of the DojoGameControllerUniversal:
@@ -59,23 +58,21 @@ The Micro:bit will show a ? symbol. If your game code is 4567 for example:
 * Press 7 times B
 * Press A to confirm.
 
-If succeeded, the Micro:bit will show the player assigned letter (a..z) which can also be usefull to identify yout player character in the game, if no personelised names are used.
+If succeeded, the Micro:bit will show the player assigned letter (a..z) which can also be useful to identify your player character in the game, if no personalised names are used.
 
 If not succeeded, press B and try again. Note that A and B can be swapped and the procedure will still work.
 
 ## Scratch developer tips
-The difficult part is to build code that needs to be copy-pasted 26 times for each player. The most simple starting point makes use of cloning a sprite and can be like this:
+The difficult part is to build code that **not** needs to be copy-pasted 26 times for each player. The most simple starting point makes use of cloning a sprite and can be like this:
 ![DojoGameHelper](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Scratch%20DojoGameHelper.png?raw=true)
-Go to [DojoGameHelp1](https://scratch.mit.edu/projects/1082054988)
+Try it yourself in the [DojoGameHelp1](https://scratch.mit.edu/projects/1082054988) Scratch project.
 
-To see a complete game using another technique, check out this (music is removed due to copyright reasons)
+To see a complete game using another technique, check out this [A horse racing game](https://scratch.mit.edu/projects/1110965589/) (music is removed due to copyright reasons).
 
-[A horse racing game](https://scratch.mit.edu/projects/1110965589/)
-
-Note that you do not need any extra hardware to run or test the game, just press a..z (and spacebar to go to the next screen)
+Note that you do not need any extra hardware to run or test the games, just press a..z (and spacebar to go to the next screen). **This makes it an ideal challenge for participants to create their own games at home, and play them together with all classmates on a big screen!**
 
 ## Additional resources
-In classrooms, there is often not much time to waste. When playing with 26 players, it can be challenging to handle the storage, distribution and collection of the Micro:bits in a short time. Therefore, a 3D printable case is available to store 27 Micro:bits, the USB cable and the battery box in a compact way.
+In classrooms, there is often not much time to waste. When playing with 26 players, it can be challenging to handle the storage, distribution and collection of the Micro:bits in a short time. Therefore, a 3D printable case is available to store 27 Micro:bits, the USB cable and the battery box together in a compact way.
 
 The STL file is available [here](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20case.stl?raw=true)
 
