@@ -43,11 +43,7 @@ Each player needs a "secret code" that will identify them as player a...z. They'
 
 Download the [list of "secret" game codes](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Gamecodes.csv?raw=true) here as a text/csv file.
 
-Alternatively, if there is not enough time to include the Micro:bit programming as a part of the game, there is also a ready to use program:
-
-Microsoft MakeCode [DojoGameControllerUniversal project](https://makecode.microbit.org/S17170-50597-42799-53089)
-
-Or download [DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex?raw=true) and drag&drop it to the Micro:bit drive letter.
+Alternatively, if there is not enough time to include the Micro:bit programming as a part of the game, there is also a ready to use program: [DojoGameControllerUniversal project](https://makecode.microbit.org/S17170-50597-42799-53089) or download [DojoGameControllerUniversal.hex](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/microbit-DojoGameControllerUniversal.hex?raw=true) and drag&drop it to the Micro:bit drive letter.
 
 You can hand over the pre-programmed Micro:bits to the participants, but they'll still need to assign their personal "secret" game code to the Micro:bit. This allowes to use the exact same program for each controller. To set the game code, tell the participants to follow the steps below.
 ### Usage of the DojoGameControllerUniversal:
@@ -61,6 +57,8 @@ The Micro:bit will show a ? symbol. If your game code is 4567 for example:
 If succeeded, the Micro:bit will show the player assigned letter (a..z) which can also be useful to identify your player character in the game, if no personalised names are used.
 
 If not succeeded, press B and try again. Note that A and B can be swapped and the procedure will still work.
+
+![Microbit gamecontroller universal](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20gamecontroller%20universal.png?raw=true)
 
 ## Scratch developer tips
 The difficult part is to build code that **not** needs to be copy-pasted 26 times for each player. The most simple starting point makes use of cloning a sprite and can be like this:
