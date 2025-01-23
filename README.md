@@ -11,9 +11,9 @@ Wiring diagram for the Arduino Micro:
 ## Arduino build instructions
 The project can be build using VSCode with the PlatformIO addon. Alternatively, src/main.cpp can be renamed to .ino if you are using the Arduino IDE. You will need to add the external library arduino-libraries/Keyboard manually.
 
-You could tweak the constants PLAYER_DELAY_MS, KEYPRESS_TIME_MS and MAX_KEYS_SAME_TIME but it is strongly advised to leave then as-is. These values were carefully chosen to meet most types of games (either high volume clicker games, or time accurate "shooting" games).
+You could tweak the constants PLAYER_DELAY_MS, KEYPRESS_MIN_TIME_MS, KEYPRESS_MAX_TIME_MS and MAX_KEYS_SAME_TIME but it is strongly advised to leave then as-is. These values were carefully chosen to meet most types of games (either high volume clicker games, or time accurate "shooting" games).
 
-Keep in mind that 26 controllers will generate a lot of keystrokes! The software is designed to handle a throughput of 26 controllers, each clicking 10 times/second, which is about the human limit of pressing a Micro:bit pushbutton. The USB protocol also have a limit of 6 keyboard keys pressed at the same time. Therefore, the time between a KeyDown and KeyUp event is set to 20 ms. This allowes a total throughput of 300 keystrokes per second, which is about 11.5 clicks per second per controller.
+Keep in mind that 26 controllers will generate a lot of keystrokes! The software is designed to handle a throughput of 26 controllers, each clicking 10 times/second, which is about the human limit of pressing a Micro:bit pushbutton. The USB protocol also have a limit of 6 keyboard keys pressed at the same time. Therefore, the minimum time between a KeyDown and KeyUp event is set to 20 ms. This allowes a total throughput of 300 keystrokes per second, which is about 11.5 clicks per second per controller.
 
 The time before the same key can be sent again is set to 50 ms. This prevents cheating and buffer backlog floods. To protect even more from cheating, when the same key is received within 50 ms, the wait time will restart. This prevents a cheater from sending on a 30 ms interval which would still result in a 60ms interval. That is still faster than the human limit.
 
@@ -65,14 +65,14 @@ If not succeeded, press B and try again. Note that A and B can be swapped and th
 ## Scratch developer tips
 The difficult part is to build code that **not** needs to be copy-pasted 26 times for each player. The most simple starting point makes use of cloning a sprite and can be like this:
 ![DojoGameHelper](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Scratch%20DojoGameHelper.png?raw=true)
-Try it yourself in the [DojoGameHelp1](https://scratch.mit.edu/projects/1082054988) Scratch project.
+Try it yourself in the [DojoGameHelp1](https://scratch.mit.edu/projects/1082054988) Scratch project. This is the simplest approch, but it sometimes misses keystrokes unfortunately because of the polling technique. If you need 100% accuracy, it is better to work event driven so that the key press time doesn't matter. This event driven approch can be found in the [DojoGameHelp2](https://scratch.mit.edu/projects/1123169107/) project.
 
 To see a complete game using another technique, check out this [A horse racing game](https://scratch.mit.edu/projects/1110965589/) (music is removed due to copyright reasons).
 
 Note that you do not need any extra hardware to run or test the games, just press a..z (and spacebar to go to the next screen). **This makes it an ideal challenge for participants to create their own games at home, and play them together with all classmates on a big screen!**
 
 ## Additional resources
-In classrooms, there is often not much time to waste. When playing with 26 players, it can be challenging to handle the storage, distribution and collection of the Micro:bits in a short time. Therefore, a 3D printable case is available to store 27 Micro:bits, the USB cable and the battery box together in a compact way.
+In classrooms, there is often not much time to waste. When playing with 26 players, it can be challenging to handle the storage, distribution and collection of the Micro:bits in a short time. Therefore, a 3D printable case is available to store 27 Micro:bits, the USB cable and the battery box together in a compact way. **It is strongly adviced to print this with a special ESD-safe filament!**
 
 The STL file is available [here](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20case.stl?raw=true)
 
