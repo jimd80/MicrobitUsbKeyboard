@@ -4,9 +4,10 @@ This project will allow you to connect a Micro:bit to a computer and send keystr
 ## Hardware setup
 You'll need an Arduino (compatible) board with an ATmega32U4 microcontroller, such as an Arduino Micro, Arduino Leonardo or a Pro Micro. Pin 1 of the Micro:bit should be connected to the serial port Rxd pin of the controller.
 
-Wiring diagram for the Arduino Micro:
+Wiring diagrams for the Arduino Micro and the Pro Micro:
 
 ![Wiring diagram](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20to%20arduino%20micro%20connection.png?raw=true)
+![Wiring diagram](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Microbit%20to%20pro%20micro%20connection.png?raw=true)
 
 ## Arduino build instructions
 The project can be build using VSCode with the PlatformIO addon. Alternatively, src/main.cpp can be renamed to .ino if you are using the Arduino IDE. You will need to add the external library arduino-libraries/Keyboard manually.
@@ -65,9 +66,9 @@ If not succeeded, press B and try again. Note that A and B can be swapped and th
 ## Scratch developer tips
 The difficult part is to build code that **not** needs to be copy-pasted 26 times for each player. The most simple starting point makes use of cloning a sprite and can be like this:
 ![DojoGameHelper](https://github.com/jimd80/MicrobitUsbKeyboard/blob/main/doc/Scratch%20DojoGameHelper.png?raw=true)
-Try it yourself in the [DojoGameHelp1](https://scratch.mit.edu/projects/1082054988) Scratch project. This is the simplest approch, but it sometimes misses keystrokes unfortunately because of the polling technique. If you need 100% accuracy, it is better to work event driven so that the key press time doesn't matter. This event driven approch can be found in the [DojoGameHelp2](https://scratch.mit.edu/projects/1123169107/) project.
+Try it yourself in the [DojoGameHelp1](https://scratch.mit.edu/projects/1124514165/) Scratch project. This is the simplest approch, but it sometimes misses keystrokes unfortunately because of the polling technique. If you need 100% accuracy, it is better to work event driven so that the key press time doesn't matter. This event driven approch can be found in the [DojoGameHelp2](https://scratch.mit.edu/projects/1124514475/) project.
 
-To see a complete game using another technique, check out this [A horse racing game](https://scratch.mit.edu/projects/1110965589/) (music is removed due to copyright reasons).
+To see a complete game using another technique, check out this [A horse racing game](https://scratch.mit.edu/projects/1124514978/) (music is removed due to copyright reasons).
 
 Note that you do not need any extra hardware to run or test the games, just press a..z (and spacebar to go to the next screen). **This makes it an ideal challenge for participants to create their own games at home, and play them together with all classmates on a big screen!**
 
