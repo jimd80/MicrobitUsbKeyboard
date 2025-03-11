@@ -1,8 +1,9 @@
 // Settings
 #define DEBUG 0                  // 1 = less logging to not affect performance, 2 = extra logging, less performance
-#define PLAYER_DELAY_MS 50       // when the same key is received within this delay, don't send repeated key as long as subsequent keys are below this delay (prevent spamming, cheating and backlog floods)
-#define KEYPRESS_MAX_TIME_MS 40  // nominal time between the keydown-keyup event. Must be smaller than PLAYER_DELAY_MS to allow time between keyup and the next keydown.
-#define KEYPRESS_MIN_TIME_MS 20  // when MAX_KEYS_SAME_TIME is reached, the keypress time can be shortened to make place for the new key
+#define PLAYER_DELAY_MS 60       // when the same key is received within this delay, don't send repeated key as long as subsequent keys are below this delay (prevent spamming, cheating and backlog floods)
+#define KEYPRESS_MAX_TIME_MS 50  // nominal time between the keydown-keyup event. Must be smaller than PLAYER_DELAY_MS to allow time between keyup and the next keydown.
+#define KEYPRESS_MIN_TIME_MS 20  // when MAX_KEYS_SAME_TIME is reached, the keypress time can be shortened to make place for the new key. New key presses are discarded (KEYPRESS_BUFFER 0) or delayed (KEYPRESS_BUFFER 1) to ensure KEYPRESS_MIN_TIME_MS
+#define KEYPRESS_BUFFER 1        // 1 = do not discard new keypresses when the max capacity for MAX_KEYS_SAME_TIME is reached but send delayed. Important to keep games like flappy bird running when everyone presses at about the same time
 #define MAX_KEYS_SAME_TIME 6     // maximum keys pressed at the same time (USB Limit). Max rate = 1000 * MAX_KEYS_SAME_TIME / KEYPRESS_MIN_TIME_MS keys/sec
 #define KB_LAYOUT KeyboardLayout_fr_FR
 
@@ -10,12 +11,12 @@
 #define TILL_KEY_EXCL 128
 
 // TODO LED's and buttons on interface circuit board
-#define LED_RED 8 // atmel PB4
-#define LED_GREEN 9 // atmel PB5
-#define BUTTON1 14 // atmel PF7
-#define BUTTON2 15 // atmel PF6
-#define BUTTON3 16 // atmel PF5
-#define BUTTON4 17 // atmel PF4
+#define LED_RED 8   // atmel PB4  Indicates when paused (supress keystrokes)
+#define LED_GREEN 9 // atmel PB5  Show receiving data
+#define BUTTON1 18  // atmel PF7  Send single char 'a' to keyboard (to test qwerty / azerty)
+#define BUTTON2 19  // atmel PF6  Send 30 keys/sec a..z (2x each)
+#define BUTTON3 20  // atmel PF5  Send 300 keys/sec a..z (20x each)
+#define BUTTON4 21  // atmel PF4  Pause / Resume
 
 // Includes
 #include <Arduino.h>
@@ -23,6 +24,7 @@
 
 // Global Variables
 bool First = true;
+bool Paused = false;
 unsigned long LastKbCharSendTimeMs = 0; // last millis() a char was sent to the keyboard, to wait for the next millisecond (send max 1000 events / sec)
 unsigned long LastSendTimePerKey[TILL_KEY_EXCL - FROM_KEY]; // last time when this key was sent to the computer
 unsigned long LastReceiveTimePerKey[TILL_KEY_EXCL - FROM_KEY]; // last time when this key was received from serial
@@ -117,24 +119,14 @@ void LogPStr(const char* pstr)
         Serial.write(c);
 }
 
-// test: 500 characters/s
-void speedtest()
+void SetLedR(bool state)
 {
-    for (int i = 0; i < 2000; i++)
-    {
-        Keyboard.write('G');
-        if (i % 200 == 199)
-            Keyboard.write('\n');
-    }
+    digitalWrite(LED_RED, state ? 1 : 0);
+}
 
-    for (int i = 0; i < 2000; i++)
-    {
-        Keyboard.write('a');
-        if (i % 200 == 199)
-            Keyboard.write('\n');
-    }
-
-    Keyboard.write('\n');
+void SetLedG(bool state)
+{
+    digitalWrite(LED_GREEN, state ? 1 : 0);
 }
 
 void ClearTimers()
@@ -172,6 +164,7 @@ void ReleaseKeys(bool fast)
             {
                 // Release key
                 Keyboard.release(i + FROM_KEY);
+                SetLedG(false);
                 IsKeyPressed[i] = false;
                 NrKeysDown--;
                 return; // continue on the next main loop iteration to increase respond time
@@ -197,6 +190,12 @@ void ReleaseKeys(bool fast)
             if (ShortestKeypress > longestKey)
                 ShortestKeypress = longestKey;
         #endif
+    }
+
+    if (Paused)
+    {
+        if (currentTime - LastKbCharSendTimeMs > 20)
+            SetLedG(false);
     }
 }
 
@@ -260,22 +259,37 @@ void ProcessChar(char c)
         return;
     }
 
-    if (NrKeysDown >= MAX_KEYS_SAME_TIME)
+    while (NrKeysDown >= MAX_KEYS_SAME_TIME)
+    {
         // maximum keys already pressed. try to release a key earlier
         ReleaseKeys(true);
 
-    if (NrKeysDown >= MAX_KEYS_SAME_TIME)
-    {
-        // unable to free key, discard this key to avoid buffer overrun
-        #if DEBUG > 0
-            NrSupressedPerKey[charIndex]++;
-        #endif
+        if (NrKeysDown >= MAX_KEYS_SAME_TIME)
+        {
+            // unable to free key
+            #if KEYPRESS_BUFFER != 1
+                // do not buffer if release failed
+                #if DEBUG > 0
+                    NrSupressedPerKey[charIndex]++;
+                #endif
 
-        #if DEBUG >= 2
-            LogPStr(PSTR("Maximum keys pressed, discard key\r\n"));
-        #endif
-        return;
+                #if DEBUG >= 2
+                    LogPStr(PSTR("Maximum keys pressed, discard key\r\n"));
+                #endif
+                return;
+            #else
+                // keep keypresses in serial buffer and wait
+                SetLedR(!Paused); // blink to indicate overflow
+                delay(1);
+                SetLedR(Paused);
+            #endif
+        }
     }
+
+    SetLedG(true);
+
+    if (Paused)
+        return;
 
     // Send keydown event
     Keyboard.press(c);
@@ -291,19 +305,60 @@ void ProcessChar(char c)
     #endif
 }
 
+void SpeedTest(int nrKeys, unsigned char nrDiffKeys, int delayMs)
+{
+    unsigned char keyIndex = 0;
+    for (int i = 0; i < nrKeys; i++)
+    {
+        ProcessChar('a' + keyIndex);
+        keyIndex = (keyIndex + 1) % nrDiffKeys;
+        for (int d = 0; d < delayMs; d++)
+        {
+            delay(1);
+            ReleaseKeys(false);
+        }
+    }
+}
+
 void ProcessButtons()
 {
-    // TODO
-    /*
     bool button1Pressed = digitalRead(BUTTON1) == LOW;
     bool button2Pressed = digitalRead(BUTTON2) == LOW;
     bool button3Pressed = digitalRead(BUTTON3) == LOW;
     bool button4Pressed = digitalRead(BUTTON4) == LOW;
-    */
+
+    if (button1Pressed)
+        ProcessChar('a');
+
+    if (button2Pressed)
+        SpeedTest(52, 26, 30); // 30 keys/sec
+
+    if (button3Pressed)
+        SpeedTest(520, 26, 3); // 300 keys/sec
+
+    if (button4Pressed)
+    {
+        Paused = !Paused;
+        SetLedR(Paused);
+        delay(50); // bounce reduce
+        while (digitalRead(BUTTON4) == LOW)
+            ;
+        delay(50); // bounce reduce
+    }
 }
 
 void setup()
 {
+    // Init variables
+    First = true;
+    Paused = false;
+    NrKeysDown = 0;
+    for (unsigned char i = 0; i < (TILL_KEY_EXCL - FROM_KEY); i++)
+        IsKeyPressed[i] = false;
+
+    ClearTimers();
+
+    // Init hardware
     pinMode(LED_RED, OUTPUT);
     pinMode(LED_GREEN, OUTPUT);
     pinMode(BUTTON1, INPUT_PULLUP);
@@ -311,15 +366,8 @@ void setup()
     pinMode(BUTTON3, INPUT_PULLUP);
     pinMode(BUTTON4, INPUT_PULLUP);
 
-    // todo, when board is ready
-    //digitalWrite(LED_RED, 0);
-    //digitalWrite(LED_GREEN, 0);
-
-    ClearTimers();
-
-    NrKeysDown = 0;
-    for (unsigned char i = 0; i < (TILL_KEY_EXCL - FROM_KEY); i++)
-        IsKeyPressed[i] = false;
+    SetLedR(true); // indicate startup (1 sec)
+    SetLedG(true);
 
     #if DEBUG >= 1
         Serial.begin(115200);
@@ -338,8 +386,11 @@ void loop()
 {
     if (First)
     {
+        // Startup delay 1 sec
         First = false;
         delay(1000);
+        SetLedR(Paused);
+        SetLedG(false);
 
         #if DEBUG >= 1
             LogPStr(PSTR("Serial to HID Ready!\r\n"));
@@ -352,8 +403,6 @@ void loop()
             LogPStr(PSTR("ms and "));
             LogNumber(KEYPRESS_MAX_TIME_MS);
             LogPStr(PSTR("ms.\r\n"));
-            // delay(5000);
-            // speedtest();
         #endif
     }
 
